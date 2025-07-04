@@ -18,9 +18,15 @@ function App() {
     setIsLoading(true);
 
     try {
-      // Send message to the backend API
+      // Prepare conversation history for API
+      const conversation = newMessages.map(msg => ({
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        content: msg.text
+      }));
+
+      // Send conversation history to the backend API
       const response = await axios.post('http://localhost:5001/api/chat', {
-        message: message,
+        messages: conversation,
       });
 
       // Add bot response to the chat

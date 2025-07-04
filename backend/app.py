@@ -3,14 +3,19 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-import openai
+import requests
+from typing import List
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Define the request body model for type checking and validation
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
 class ChatRequest(BaseModel):
-    message: str
+    messages: List[ChatMessage]
 
 app = FastAPI()
 
@@ -32,7 +37,6 @@ app.add_middleware(
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("OPENAI_API_KEY environment variable not set")
-openai.api_key = api_key
 
 @app.post("/api/chat")
 async def chat(chat_request: ChatRequest):
@@ -40,15 +44,23 @@ async def chat(chat_request: ChatRequest):
     Handles chat requests from the frontend.
     """
     try:
-        # --- OpenAI API Call ---
-        # This is a basic example. You'll want to expand this to manage
-        # conversation history for a true chatbot experience.
-        completion = openai.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": chat_request.message}]
-        )
-        
-        bot_response = completion.choices[0].message.content
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        # Define your custom system prompt here
+        system_prompt = {"role": "system", "content": "You are a shy puppy. Answer concisely and clearly but always start barking in the end."}
+        # Insert system prompt at the start of the messages list
+        messages = [system_prompt] + [msg.dict() for msg in chat_request.messages]
+        data = {
+            "model": "o4-mini-2025-04-16",
+            "messages": messages
+        }
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
+        completion = response.json()
+        bot_response = completion["choices"][0]["message"]["content"]
         return {"response": bot_response}
     except Exception as e:
         print(f"An error occurred: {e}")
