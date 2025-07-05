@@ -1,8 +1,9 @@
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+import pymupdf4llm
 import requests
 from typing import List
 
@@ -65,3 +66,30 @@ async def chat(chat_request: ChatRequest):
     except Exception as e:
         print(f"An error occurred: {e}")
         raise HTTPException(status_code=500, detail="An internal server error occurred")
+
+@app.post("/api/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """
+    Endpoint to upload PDF/Excel files.
+    """
+    try:
+        # Save the uploaded file to a temporary location (or process as needed)
+        file_location = f"temp_{file.filename}"
+        with open(file_location, "wb") as f:
+            f.write(await file.read())
+        # You can add logic here to process the file (PDF/Excel)
+        if file.filename.endswith('.pdf'):
+            # Example: Use pymupdf4llm to process PDF files
+            doc = pymupdf4llm.to_markdown(file_location)
+            print(f"Extracted text from PDF: {doc[:100]}...")  # Print first 100 characters for debugging
+        elif file.filename.endswith('.xlsx'):
+            # Example: Handle Excel files (you can use pandas or openpyxl here)
+            print(f"Excel file '{file.filename}' uploaded successfully.")
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file type. Please upload a PDF or Excel file.")
+        # Clean up the temporary file
+        os.remove(file_location)
+        return {"message": f"File '{file.filename}' uploaded successfully."}
+    except Exception as e:
+        print(f"File upload error: {e}")
+        raise HTTPException(status_code=500, detail="File upload failed.")

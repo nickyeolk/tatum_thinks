@@ -45,10 +45,35 @@ function App() {
     }
   };
 
+  // File upload handler
+  const handleFileUpload = async (file) => {
+    setIsLoading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const response = await axios.post('http://localhost:5001/api/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      setMessages([
+        ...messages,
+        { sender: 'bot', text: response.data.message || 'File uploaded successfully.' },
+      ]);
+    } catch (error) {
+      setMessages([
+        ...messages,
+        { sender: 'bot', text: 'File upload failed.' },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="chat-container">
       <ChatWindow messages={messages} />
-      <ChatInput onSendMessage={sendMessage} isLoading={isLoading} />
+      <ChatInput onSendMessage={sendMessage} isLoading={isLoading} onFileUpload={handleFileUpload} />
     </div>
   );
 }
