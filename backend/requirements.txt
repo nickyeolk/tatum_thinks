@@ -4,3 +4,4 @@ requests
 uvicorn[standard]
 python-multipart
 pymupdf4llm
+tiktoken

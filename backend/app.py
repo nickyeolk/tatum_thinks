@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+import tiktoken
 import pymupdf4llm
 import requests
 from typing import List
@@ -79,9 +80,9 @@ async def upload_file(file: UploadFile = File(...)):
             f.write(await file.read())
         # You can add logic here to process the file (PDF/Excel)
         if file.filename.endswith('.pdf'):
-            # Example: Use pymupdf4llm to process PDF files
             doc = pymupdf4llm.to_markdown(file_location)
-            print(f"Extracted text from PDF: {doc[:100]}...")  # Print first 100 characters for debugging
+            encoding = tiktoken.get_encoding("o200k_base")
+            returnstr = f"File '{file.filename}' consumes {len(encoding.encode(doc))} tokens. uploaded successfully."
         elif file.filename.endswith('.xlsx'):
             # Example: Handle Excel files (you can use pandas or openpyxl here)
             print(f"Excel file '{file.filename}' uploaded successfully.")
@@ -89,7 +90,7 @@ async def upload_file(file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="Unsupported file type. Please upload a PDF or Excel file.")
         # Clean up the temporary file
         os.remove(file_location)
-        return {"message": f"File '{file.filename}' uploaded successfully."}
+        return {"message": returnstr}
     except Exception as e:
         print(f"File upload error: {e}")
         raise HTTPException(status_code=500, detail="File upload failed.")
